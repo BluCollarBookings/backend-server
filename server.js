@@ -1,8 +1,9 @@
-require('dotenv').config({ path: './.env' }); // Load environment variables from the .env file
+require('dotenv').config(); // Load environment variables from the .env file
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
+const path = require('path');
 
 // Environment variables for Square OAuth
 const SQUARE_CLIENT_ID = process.env.SQUARE_CLIENT_ID;
@@ -16,6 +17,9 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(cors()); // Allow cross-origin requests
 app.use(bodyParser.json()); // Parse JSON request bodies
+
+// Serve static files from the React app's build directory
+app.use(express.static(path.join(__dirname, '../build')));
 
 // Route to handle Square OAuth callback for GET requests
 app.get('/api/square/oauth/callback', async (req, res) => {
@@ -93,6 +97,11 @@ app.get('/api/square/test', (req, res) => {
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.originalUrl}`);
     next();
+});
+
+// Fallback: Serve React's index.html for any other request
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../build', 'index.html'));
 });
 
 // Start the server
