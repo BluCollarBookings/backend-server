@@ -66,12 +66,12 @@ app.post('/api/square/oauth/callback', async (req, res) => {
 
     try {
         // Exchange authorization code for an access token
-        const response = await axios.post('https://connect.squareup.com/oauth2/token', {
-            client_id: SQUARE_CLIENT_ID,
-            client_secret: SQUARE_CLIENT_SECRET,
-            code: authorization_code,
-            grant_type: 'authorization_code',
-            redirect_uri: SQUARE_REDIRECT_URI,
+const SQUARE_OAUTH_URL = `https://connect.squareup.com/oauth2/authorize?` +
+  `client_id=${SQUARE_CLIENT_ID}` +
+  `&response_type=code` +
+  `&scope=MERCHANT_PROFILE.read PAYMENTS_WRITE PAYMENTS_READ INVOICES_WRITE INVOICES_READ CUSTOMERS_READ CUSTOMERS_WRITE` +
+  `&redirect_uri=${SQUARE_REDIRECT_URI}`;
+
         });
 
         const { access_token, refresh_token, expires_at } = response.data;
