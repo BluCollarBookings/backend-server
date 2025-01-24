@@ -57,7 +57,7 @@ app.get('/api/square/oauth/callback', async (req, res) => {
 });
 
 // POST route for debugging (if needed for testing authorization_code submission)
-app.post('/api/square/oauth/callback', async (req, res) => {
+aapp.post('/api/square/oauth/callback', async (req, res) => {
     const { authorization_code } = req.body;
 
     if (!authorization_code) {
@@ -65,40 +65,30 @@ app.post('/api/square/oauth/callback', async (req, res) => {
     }
 
     try {
-        // Exchange authorization code for an access token
-const SQUARE_OAUTH_URL = `https://connect.squareup.com/oauth2/authorize?` +
-  `client_id=${SQUARE_CLIENT_ID}` +
-  `&response_type=code` +
-  `&scope=MERCHANT_PROFILE.read PAYMENTS_WRITE PAYMENTS_READ INVOICES_WRITE INVOICES_READ CUSTOMERS_READ CUSTOMERS_WRITE` +
-  `&redirect_uri=${SQUARE_REDIRECT_URI}`;
-
+        const response = await axios.post('https://connect.squareup.com/oauth2/token', {
+            client_id: SQUARE_CLIENT_ID,
+            client_secret: SQUARE_CLIENT_SECRET,
+            code: authorization_code,
+            grant_type: 'authorization_code',
+            redirect_uri: SQUARE_REDIRECT_URI,
         });
 
         const { access_token, refresh_token, expires_at } = response.data;
-
-        console.log('Square Access Token:', access_token);
-
-        // Send the tokens back to the client
-        res.status(200).json({
-            access_token,
-            refresh_token,
-            expires_at,
-        });
+        res.status(200).json({ access_token, refresh_token, expires_at });
     } catch (err) {
         const errorResponse = err.response?.data || err.message;
-        console.error('Error exchanging Square OAuth token:', errorResponse);
 
-        // Handle insufficient scopes error
-        if (errorResponse.errors && errorResponse.errors.some(e => e.code === 'INSUFFICIENT_SCOPES')) {
+        if (errorResponse.errors?.some(e => e.code === 'INSUFFICIENT_SCOPES')) {
             return res.status(403).json({
                 error: 'INSUFFICIENT_SCOPES',
-                message: 'Additional permissions are required. Please re-link your Square account.',
+                message: 'Please re-link your Square account to grant additional permissions.',
             });
         }
 
         res.status(500).json({ error: 'Failed to exchange authorization code.' });
     }
 });
+
 
 
 // Test route to check if the server is running
