@@ -58,14 +58,14 @@ app.get('/api/square/oauth/callback', async (req, res) => {
 
 // POST route for debugging (if needed for testing authorization_code submission)
 app.post('/api/square/oauth/callback', async (req, res) => {
-    const { authorization_code } = req.body; // Extract the authorization code from the request body
+    const { authorization_code } = req.body;
 
     if (!authorization_code) {
         return res.status(400).json({ error: 'Authorization code is required.' });
     }
 
     try {
-        // Square OAuth Token Exchange API
+        // Exchange authorization code for an access token
         const response = await axios.post('https://connect.squareup.com/oauth2/token', {
             client_id: SQUARE_CLIENT_ID,
             client_secret: SQUARE_CLIENT_SECRET,
@@ -74,24 +74,32 @@ app.post('/api/square/oauth/callback', async (req, res) => {
             redirect_uri: SQUARE_REDIRECT_URI,
         });
 
-        const { access_token, refresh_token, expires_at, merchant_id } = response.data;
+        const { access_token, refresh_token, expires_at } = response.data;
 
-        // Log the access token (for debugging purposes, remove in production)
         console.log('Square Access Token:', access_token);
-        console.log('Merchant ID:', merchant_id);
 
         // Send the tokens back to the client
         res.status(200).json({
             access_token,
             refresh_token,
             expires_at,
-            merchant_id,
         });
     } catch (err) {
-        console.error('Error exchanging Square OAuth token:', err.response?.data || err.message);
+        const errorResponse = err.response?.data || err.message;
+        console.error('Error exchanging Square OAuth token:', errorResponse);
+
+        // Handle insufficient scopes error
+        if (errorResponse.errors && errorResponse.errors.some(e => e.code === 'INSUFFICIENT_SCOPES')) {
+            return res.status(403).json({
+                error: 'INSUFFICIENT_SCOPES',
+                message: 'Additional permissions are required. Please re-link your Square account.',
+            });
+        }
+
         res.status(500).json({ error: 'Failed to exchange authorization code.' });
     }
 });
+
 
 // Test route to check if the server is running
 app.get('/api/square/test', (req, res) => {
