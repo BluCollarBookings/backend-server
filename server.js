@@ -39,13 +39,16 @@ app.get('/api/square/oauth/callback', async (req, res) => {
             redirect_uri: SQUARE_REDIRECT_URI,
         });
 
-        const { access_token, refresh_token, expires_at } = response.data;
+        const { access_token, refresh_token, expires_at, merchant_id } = response.data;
 
         // Log the access token (for debugging purposes, remove in production)
         console.log('Square Access Token:', access_token);
+        console.log('Merchant ID:', merchant_id);
+
+        // Save merchant_id or any additional data to your database if needed
 
         // Redirect back to the app using a deep link
-        const appRedirectUri = `com.example.rvautoservicecompany://square-success?access_token=${access_token}&refresh_token=${refresh_token}`;
+        const appRedirectUri = `com.example.rvautoservicecompany://square-success?access_token=${access_token}&refresh_token=${refresh_token}&merchant_id=${merchant_id}`;
         res.redirect(appRedirectUri);
     } catch (err) {
         console.error('Error exchanging Square OAuth token:', err.response?.data || err.message);
@@ -71,16 +74,18 @@ app.post('/api/square/oauth/callback', async (req, res) => {
             redirect_uri: SQUARE_REDIRECT_URI,
         });
 
-        const { access_token, refresh_token, expires_at } = response.data;
+        const { access_token, refresh_token, expires_at, merchant_id } = response.data;
 
         // Log the access token (for debugging purposes, remove in production)
         console.log('Square Access Token:', access_token);
+        console.log('Merchant ID:', merchant_id);
 
         // Send the tokens back to the client
         res.status(200).json({
             access_token,
             refresh_token,
             expires_at,
+            merchant_id,
         });
     } catch (err) {
         console.error('Error exchanging Square OAuth token:', err.response?.data || err.message);
