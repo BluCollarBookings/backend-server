@@ -46,7 +46,8 @@ app.get('/api/square/oauth/callback', async (req, res) => {
         console.log('Refresh Token:', refresh_token);
 
         // Redirect back to the app using a deep link
-        const appRedirectUri = `com.example.rvautoservicecompany://square-success?access_token=${access_token}&refresh_token=${refresh_token}`;
+        const appRedirectUri = `blucollarbookingsflutterapp://square-success?access_token=${access_token}&refresh_token=${refresh_token}`;
+
         res.redirect(appRedirectUri);
     } catch (err) {
         const errorResponse = err.response?.data || err.message;
