@@ -7,11 +7,11 @@ const path = require('path');
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
-const serviceAccount = require('./path-to-your-firebase-admin-sdk.json'); // Replace with your Firebase Admin SDK JSON file
+const serviceAccount = require('./blucollarbookings-firebase-adminsdk.json'); // ✅ Make sure this file exists in the backend directory
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://your-database-name.firebaseio.com" // Replace with your Firebase Database URL
+    databaseURL: "https://blucollarbookings.firebaseio.com" // ✅ Replace with your actual Firebase Database URL
 });
 
 const db = admin.database();
@@ -74,7 +74,7 @@ app.get('/api/square/oauth/callback', async (req, res) => {
     }
 });
 
-// POST route for debugging (if needed for testing authorization_code submission)
+// POST route for handling Square OAuth callback
 app.post('/api/square/oauth/callback', async (req, res) => {
     const { authorization_code, companyUUID } = req.body;
 
@@ -83,7 +83,7 @@ app.post('/api/square/oauth/callback', async (req, res) => {
     }
 
     try {
-        // Square OAuth Token Exchange API
+        // Exchange authorization code for access token
         const response = await axios.post('https://connect.squareup.com/oauth2/token', {
             client_id: SQUARE_CLIENT_ID,
             client_secret: SQUARE_CLIENT_SECRET,
@@ -113,7 +113,7 @@ app.post('/api/square/oauth/callback', async (req, res) => {
 
 // Test route to check if the server is running
 app.get('/api/square/test', (req, res) => {
-    res.send('Square OAuth integration is working!');
+    res.send('✅ Square OAuth integration is working!');
 });
 
 // Debug logging for all incoming requests
