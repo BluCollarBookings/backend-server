@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const axios = require('axios');
-const path = require('path');
 const admin = require('firebase-admin');
 
 // ✅ Load Firebase credentials from Render environment variable
@@ -17,7 +16,7 @@ const serviceAccount = JSON.parse(Buffer.from(serviceAccountBase64, 'base64').to
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://blucollarbookings-default-rtdb.firebaseio.com/" // ✅ Correct URL
+    databaseURL: "https://blucollarbookings-default-rtdb.firebaseio.com/" // ✅ Correct Firebase URL
 });
 const db = admin.database();
 
@@ -38,9 +37,6 @@ const PORT = process.env.PORT || 8080;
 // ✅ Middleware
 app.use(cors());
 app.use(bodyParser.json());
-
-// ✅ Serve static files from React frontend
-app.use(express.static(path.join(__dirname, '../build')));
 
 // ✅ Route to handle Square OAuth callback
 app.get('/api/square/oauth/callback', async (req, res) => {
@@ -90,7 +86,6 @@ app.get('/api/square/oauth/callback', async (req, res) => {
     }
 });
 
-
 // ✅ Test route to check if the server is running
 app.get('/api/square/test', (req, res) => {
     res.send('✅ Square OAuth integration is working!');
@@ -100,11 +95,6 @@ app.get('/api/square/test', (req, res) => {
 app.use((req, res, next) => {
     console.log(`📥 ${req.method} ${req.originalUrl}`);
     next();
-});
-
-// ✅ Fallback: Serve React's index.html for any other request
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../build', 'index.html'));
 });
 
 // ✅ Start the server
