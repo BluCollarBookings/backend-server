@@ -17,9 +17,8 @@ const serviceAccount = JSON.parse(Buffer.from(serviceAccountBase64, 'base64').to
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://blucollarbookings.firebaseio.com" // Replace with your actual Firebase Database URL
+    databaseURL: "https://blucollarbookings-default-rtdb.firebaseio.com/" // ✅ Correct URL
 });
-
 const db = admin.database();
 
 // ✅ Check Firebase connection
