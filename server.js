@@ -43,7 +43,7 @@ app.use(bodyParser.json());
 // ✅ Serve static files from React frontend
 app.use(express.static(path.join(__dirname, '../build')));
 
-// ✅ Route to handle Square OAuth callback (GET)
+// ✅ Route to handle Square OAuth callback
 app.get('/api/square/oauth/callback', async (req, res) => {
     const authorizationCode = req.query.code;
     const companyUUID = req.query.state; // Square passes state as companyUUID
@@ -92,55 +92,6 @@ app.get('/api/square/oauth/callback', async (req, res) => {
         res.status(500).json({ error: 'Failed to exchange authorization code.' });
     }
 });
-
-// ✅ POST route for Square OAuth callback (alternative method)
-app.get('/api/square/oauth/callback', async (req, res) => {
-    const authorizationCode = req.query.code;
-    const companyUUID = req.query.state;
-
-    console.log("\n✅ Received OAuth Callback");
-    console.log("🔹 Authorization Code:", authorizationCode);
-    console.log("🔹 Company UUID:", companyUUID);
-
-    if (!authorizationCode || !companyUUID) {
-        console.error("❌ Missing Authorization Code or Company UUID");
-        return res.status(400).json({ error: 'Authorization code and company UUID are required.', receivedUUID: companyUUID });
-    }
-
-    try {
-        const response = await axios.post('https://connect.squareup.com/oauth2/token', {
-            client_id: SQUARE_CLIENT_ID,
-            client_secret: SQUARE_CLIENT_SECRET,
-            code: authorizationCode,
-            grant_type: 'authorization_code',
-            redirect_uri: SQUARE_REDIRECT_URI,
-        });
-
-        const { access_token, refresh_token, expires_at } = response.data;
-
-        console.log("✅ Square OAuth Response:", response.data);
-        console.log("🔄 Saving to Firebase...");
-        console.log(`🔥 Firebase Path: users/companies/${companyUUID}/companySettings`);
-        console.log("🔹 Access Token:", access_token);
-
-        await db.ref(`users/companies/${companyUUID}/companySettings`).update({
-            squareAccessToken: access_token,
-            squareRefreshToken: refresh_token,
-            squareTokenExpiresAt: expires_at
-        });
-
-        console.log(`✅ Access token successfully saved for companyUUID: ${companyUUID}`);
-
-        // ✅ Redirect explicitly back to Flutter
-        const appRedirectUri = `blucollarbookingsflutterapp://square-success`;
-        console.log(`🔄 Redirecting to Flutter: ${appRedirectUri}`);
-        res.redirect(appRedirectUri);
-    } catch (err) {
-        console.error("❌ Error exchanging Square OAuth token:", err.response?.data || err.message);
-        res.status(500).json({ error: 'Failed to exchange authorization code.' });
-    }
-});
-
 
 // ✅ Test route to check if the server is running
 app.get('/api/square/test', (req, res) => {
