@@ -38,7 +38,74 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(bodyParser.json());
 
-// ✅ Route to handle Square OAuth callback
+/**
+ * ✅ Function to refresh Square Access Token before it expires
+ */
+async function refreshSquareAccessToken(companyUUID, refreshToken) {
+    console.log(`🔄 Refreshing Square Access Token for companyUUID: ${companyUUID}`);
+
+    try {
+        const response = await axios.post('https://connect.squareup.com/oauth2/token', {
+            client_id: SQUARE_CLIENT_ID,
+            client_secret: SQUARE_CLIENT_SECRET,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token',
+        });
+
+        const { access_token, refresh_token: newRefreshToken, expires_at } = response.data;
+
+        console.log("✅ Square OAuth Token Refreshed Successfully");
+        console.log("🔄 Saving new tokens to Firebase...");
+
+        // ✅ Save updated access & refresh tokens
+        await db.ref(`users/companies/${companyUUID}/companySettings`).update({
+            squareAccessToken: access_token,
+            squareRefreshToken: newRefreshToken,
+            squareTokenExpiresAt: expires_at,
+        });
+
+        console.log(`✅ New access token saved for companyUUID: ${companyUUID}`);
+        return access_token;
+    } catch (err) {
+        console.error("❌ Error refreshing Square OAuth token:", err.response?.data || err.message);
+        return null;
+    }
+}
+
+/**
+ * ✅ Middleware to verify and refresh Square tokens automatically
+ */
+app.use(async (req, res, next) => {
+    if (req.path.startsWith("/api/square/")) {
+        const companyUUID = req.query.companyUUID || req.body.companyUUID;
+
+        if (companyUUID) {
+            const companyRef = db.ref(`users/companies/${companyUUID}/companySettings`);
+            const snapshot = await companyRef.once("value");
+            const companyData = snapshot.val();
+
+            if (companyData) {
+                const { squareAccessToken, squareRefreshToken, squareTokenExpiresAt } = companyData;
+                const now = new Date();
+
+                if (new Date(squareTokenExpiresAt) < now) {
+                    console.log(`🔄 Token expired, refreshing access token for ${companyUUID}`);
+                    const newToken = await refreshSquareAccessToken(companyUUID, squareRefreshToken);
+                    if (newToken) {
+                        req.squareAccessToken = newToken; // Attach new token for API calls
+                    }
+                } else {
+                    req.squareAccessToken = squareAccessToken;
+                }
+            }
+        }
+    }
+    next();
+});
+
+/**
+ * ✅ Route to handle Square OAuth callback
+ */
 app.get('/api/square/oauth/callback', async (req, res) => {
     const authorizationCode = req.query.code;
     const companyUUID = req.query.state;
@@ -86,18 +153,24 @@ app.get('/api/square/oauth/callback', async (req, res) => {
     }
 });
 
-// ✅ Test route to check if the server is running
+/**
+ * ✅ Test route to check if the server is running
+ */
 app.get('/api/square/test', (req, res) => {
     res.send('✅ Square OAuth integration is working!');
 });
 
-// ✅ Debug logging for all incoming requests
+/**
+ * ✅ Debug logging for all incoming requests
+ */
 app.use((req, res, next) => {
     console.log(`📥 ${req.method} ${req.originalUrl}`);
     next();
 });
 
-// ✅ Start the server
+/**
+ * ✅ Start the server
+ */
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
