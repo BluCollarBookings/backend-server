@@ -6,8 +6,14 @@ const axios = require('axios');
 const path = require('path');
 const admin = require('firebase-admin');
 
-// ✅ Initialize Firebase Admin SDK
-const serviceAccount = require('./blucollarbookings-firebase-adminsdk.json'); // Make sure this file exists
+// ✅ Load Firebase credentials from Render environment variable
+const serviceAccountBase64 = process.env.FIREBASE_CREDENTIALS;
+if (!serviceAccountBase64) {
+    console.error("❌ Firebase credentials are missing. Set FIREBASE_CREDENTIALS in Render.");
+    process.exit(1);
+}
+
+const serviceAccount = JSON.parse(Buffer.from(serviceAccountBase64, 'base64').toString('utf8'));
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
