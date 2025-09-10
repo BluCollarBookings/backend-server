@@ -108,7 +108,7 @@ app.use(async (req, res, next) => {
  */
 app.get('/api/square/oauth/callback', async (req, res) => {
     const authorizationCode = req.query.code;
-    const companyUUID = req.query.state; // 🔑 The `state` param ties back to companyUUID
+    const companyUUID = req.query.state;
 
     console.log("\n✅ Received OAuth Callback");
     console.log("🔹 Authorization Code:", authorizationCode);
@@ -128,7 +128,7 @@ app.get('/api/square/oauth/callback', async (req, res) => {
             redirect_uri: SQUARE_REDIRECT_URI,
         });
 
-        const { access_token, refresh_token, expires_at, merchant_id } = response.data;
+        const { access_token, refresh_token, expires_at } = response.data;
 
         console.log("✅ Square OAuth Response:", response.data);
         console.log("🔄 Saving to Firebase...");
@@ -138,8 +138,7 @@ app.get('/api/square/oauth/callback', async (req, res) => {
         await db.ref(`users/companies/${companyUUID}/companySettings`).update({
             squareAccessToken: access_token,
             squareRefreshToken: refresh_token,
-            squareTokenExpiresAt: expires_at,
-            squareMerchantId: merchant_id
+            squareTokenExpiresAt: expires_at
         });
 
         console.log(`✅ Access token successfully saved for companyUUID: ${companyUUID}`);
@@ -151,49 +150,6 @@ app.get('/api/square/oauth/callback', async (req, res) => {
     } catch (err) {
         console.error("❌ Error exchanging Square OAuth token:", err.response?.data || err.message);
         res.status(500).json({ error: 'Failed to exchange authorization code.' });
-    }
-});
-
-/**
- * ✅ New: Route to create Checkout Link
- */
-app.post('/api/square/checkout', async (req, res) => {
-    const { amount, currency, type, customerId } = req.body;
-    console.log(`💳 Creating Checkout Link for ${amount} ${type} (${currency})`);
-
-    try {
-        const response = await axios.post(
-            'https://connect.squareup.com/v2/online-checkout/payment-links',
-            {
-                idempotency_key: Date.now().toString(),
-                order: {
-                    location_id: "LRYQ08SK946CD", // ✅ Hardcoded location for BluCollarBookings
-                    line_items: [
-                        {
-                            name: `${amount} ${type}`,
-                            quantity: "1",
-                            base_price_money: { amount, currency }
-                        }
-                    ]
-                },
-                checkout_options: {
-                    redirect_url: "https://blucollarbookings.com/payment-success"
-                },
-                customer_id: customerId || undefined
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.SQUARE_ACCESS_TOKEN || ""}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        console.log("✅ Checkout Link Created:", response.data);
-        res.json({ checkout_url: response.data.payment_link.url });
-    } catch (err) {
-        console.error("❌ Error creating Checkout Link:", err.response?.data || err.message);
-        res.status(500).json({ error: 'Failed to create checkout link.' });
     }
 });
 
