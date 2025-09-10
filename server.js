@@ -108,7 +108,7 @@ app.use(async (req, res, next) => {
  */
 app.get('/api/square/oauth/callback', async (req, res) => {
     const authorizationCode = req.query.code;
-    const companyUUID = req.query.state;
+    const companyUUID = req.query.state; // 🔑 The `state` param ties back to companyUUID
 
     console.log("\n✅ Received OAuth Callback");
     console.log("🔹 Authorization Code:", authorizationCode);
@@ -128,7 +128,7 @@ app.get('/api/square/oauth/callback', async (req, res) => {
             redirect_uri: SQUARE_REDIRECT_URI,
         });
 
-        const { access_token, refresh_token, expires_at } = response.data;
+        const { access_token, refresh_token, expires_at, merchant_id } = response.data;
 
         console.log("✅ Square OAuth Response:", response.data);
         console.log("🔄 Saving to Firebase...");
@@ -138,7 +138,8 @@ app.get('/api/square/oauth/callback', async (req, res) => {
         await db.ref(`users/companies/${companyUUID}/companySettings`).update({
             squareAccessToken: access_token,
             squareRefreshToken: refresh_token,
-            squareTokenExpiresAt: expires_at
+            squareTokenExpiresAt: expires_at,
+            squareMerchantId: merchant_id
         });
 
         console.log(`✅ Access token successfully saved for companyUUID: ${companyUUID}`);
