@@ -155,6 +155,49 @@ app.get('/api/square/oauth/callback', async (req, res) => {
 });
 
 /**
+ * ✅ New: Route to create Checkout Link
+ */
+app.post('/api/square/checkout', async (req, res) => {
+    const { amount, currency, type, customerId } = req.body;
+    console.log(`💳 Creating Checkout Link for ${amount} ${type} (${currency})`);
+
+    try {
+        const response = await axios.post(
+            'https://connect.squareup.com/v2/online-checkout/payment-links',
+            {
+                idempotency_key: Date.now().toString(),
+                order: {
+                    location_id: "LRYQ08SK946CD", // ✅ Hardcoded location for BluCollarBookings
+                    line_items: [
+                        {
+                            name: `${amount} ${type}`,
+                            quantity: "1",
+                            base_price_money: { amount, currency }
+                        }
+                    ]
+                },
+                checkout_options: {
+                    redirect_url: "https://blucollarbookings.com/payment-success"
+                },
+                customer_id: customerId || undefined
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.SQUARE_ACCESS_TOKEN || ""}`,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        console.log("✅ Checkout Link Created:", response.data);
+        res.json({ checkout_url: response.data.payment_link.url });
+    } catch (err) {
+        console.error("❌ Error creating Checkout Link:", err.response?.data || err.message);
+        res.status(500).json({ error: 'Failed to create checkout link.' });
+    }
+});
+
+/**
  * ✅ Test route to check if the server is running
  */
 app.get('/api/square/test', (req, res) => {
